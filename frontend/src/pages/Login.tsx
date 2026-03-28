@@ -30,7 +30,7 @@ function Login() {
                     />
                   </svg>
                 </span>
-                <input type="text" placeholder="メールアドレス" />
+                <input type="text" placeholder="mail@site.com" />
               </label>
               <label className="input bg-white shadow">
                 <span className="label">
@@ -49,7 +49,7 @@ function Login() {
                     />
                   </svg>
                 </span>
-                <input type="text" placeholder="パスワード" />
+                <input type="text" placeholder="Password" />
               </label>
 
               <div className="justify-end card-actions mt-2.5">
@@ -82,7 +82,7 @@ function Login() {
                     />
                   </svg>
                 </span>
-                <input type="text" placeholder="ユーザー名" />
+                <input type="text" placeholder="Username" />
               </label>
               <label className="input bg-white shadow mb-1">
                 <span className="label">
@@ -101,7 +101,7 @@ function Login() {
                     />
                   </svg>
                 </span>
-                <input type="text" placeholder="メールアドレス" />
+                <input type="text" placeholder="mail@site.com" />
               </label>
               <label className="input bg-white shadow">
                 <span className="label">
@@ -120,7 +120,7 @@ function Login() {
                     />
                   </svg>
                 </span>
-                <input type="text" placeholder="パスワード" />
+                <input type="text" placeholder="Password" />
               </label>
 
               <div className="justify-end card-actions mt-2.5">
