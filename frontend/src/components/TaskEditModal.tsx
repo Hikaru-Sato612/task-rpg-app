@@ -6,46 +6,67 @@ type Task = {
   status: string;
   description?: string;
   dueDate?: string;
+  isRetry?: boolean;
 };
 
 type Props = {
   modalId?: string;
-  onAdd: (task: Task) => void;
-  defaultStatus: string;
+  task: Task | null;
+  onUpdate: (task: Task) => void;
+  onDelete: (id: number) => void;
 };
 
-function TaskModal({ modalId = "task_modal", onAdd, defaultStatus }: Props) {
+function TaskEditModal({
+  modalId = "edit_modal",
+  task,
+  onUpdate,
+  onDelete,
+}: Props) {
   const [title, setTitle] = useState("");
-  const [status, setStatus] = useState(defaultStatus);
+  const [status, setStatus] = useState("Next");
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState("");
 
+  // タスクが変わったら反映
   useEffect(() => {
-    setStatus(defaultStatus);
-  }, [defaultStatus]);
+    if (task) {
+      setTitle(task.title);
+      setStatus(task.status);
+      setDescription(task.description || "");
+      setDueDate(task.dueDate || "");
+    }
+  }, [task]);
 
   const closeModal = () => {
-    setTitle("");
-    setStatus(defaultStatus);
-    setDescription("");
-    setDueDate("");
+    if (task) {
+      setTitle(task.title);
+      setStatus(task.status);
+      setDescription(task.description || "");
+      setDueDate(task.dueDate || "");
+    }
+
     const modal = document.getElementById(modalId) as HTMLDialogElement;
     modal.close();
   };
 
-  const handleAdd = () => {
-    if (!title) return;
+  const handleUpdate = () => {
+    if (!task || !title) return;
 
-    const newTask: Task = {
-      id: Date.now(),
+    onUpdate({
+      ...task,
       title,
       status,
       description,
       dueDate,
-    };
+    });
 
-    onAdd(newTask);
-    setTitle("");
+    closeModal();
+  };
+
+  const handleDelete = () => {
+    if (!task) return;
+
+    onDelete(task.id);
     closeModal();
   };
 
@@ -74,7 +95,6 @@ function TaskModal({ modalId = "task_modal", onAdd, defaultStatus }: Props) {
 
         <input
           type="text"
-          placeholder="タスク名"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           className="input input-primary mb-4 w-full"
@@ -107,9 +127,15 @@ function TaskModal({ modalId = "task_modal", onAdd, defaultStatus }: Props) {
           className="textarea textarea-primary w-full"
         ></textarea>
 
-        <div className="modal-action">
-          <button className="btn btn-primary" onClick={handleAdd}>
-            追加
+        <div className="modal-action justify-between">
+          {/* 削除 */}
+          <button className="btn btn-error" onClick={handleDelete}>
+            削除
+          </button>
+
+          {/* 更新 */}
+          <button className="btn btn-primary" onClick={handleUpdate}>
+            更新
           </button>
         </div>
       </div>
@@ -117,4 +143,4 @@ function TaskModal({ modalId = "task_modal", onAdd, defaultStatus }: Props) {
   );
 }
 
-export default TaskModal;
+export default TaskEditModal;
