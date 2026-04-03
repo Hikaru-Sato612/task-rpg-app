@@ -6,6 +6,7 @@ type Task = {
   status: string;
   description?: string;
   dueDate?: string;
+  estimatedTime?: number;
   isRetry?: boolean;
 };
 
@@ -26,6 +27,7 @@ function TaskEditModal({
   const [status, setStatus] = useState("Next");
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState("");
+  const [estimatedTime, setEstimatedTime] = useState(0);
 
   // タスクが変わったら反映
   useEffect(() => {
@@ -34,6 +36,7 @@ function TaskEditModal({
       setStatus(task.status);
       setDescription(task.description || "");
       setDueDate(task.dueDate || "");
+      setEstimatedTime(task.estimatedTime || 0)
     }
   }, [task]);
 
@@ -58,6 +61,7 @@ function TaskEditModal({
       status,
       description,
       dueDate,
+      estimatedTime,
     });
 
     closeModal();
@@ -118,6 +122,20 @@ function TaskEditModal({
             onChange={(e) => setDueDate(e.target.value)}
             className="input input-primary input-sm"
           />
+
+          <label className="input input-primary input-sm w-40">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-6">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+            </svg>
+
+            <input
+              type="number"
+              step="0.5"
+              className="grow"
+              value={estimatedTime}
+              onChange={(e) => setEstimatedTime(Number(e.target.value))}
+            />
+          </label>
         </div>
 
         <textarea

@@ -5,6 +5,7 @@ type Task = {
   title: string;
   status: string;
   description?: string;
+  estimatedTime?: number;
   dueDate?: string;
 };
 
@@ -19,6 +20,7 @@ function TaskModal({ modalId = "task_modal", onAdd, defaultStatus }: Props) {
   const [status, setStatus] = useState(defaultStatus);
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState("");
+  const [estimatedTime, setEstimatedTime] = useState(0);
 
   useEffect(() => {
     setStatus(defaultStatus);
@@ -29,6 +31,7 @@ function TaskModal({ modalId = "task_modal", onAdd, defaultStatus }: Props) {
     setStatus(defaultStatus);
     setDescription("");
     setDueDate("");
+    setEstimatedTime(0);
     const modal = document.getElementById(modalId) as HTMLDialogElement;
     modal.close();
   };
@@ -42,6 +45,7 @@ function TaskModal({ modalId = "task_modal", onAdd, defaultStatus }: Props) {
       status,
       description,
       dueDate,
+      estimatedTime,
     };
 
     onAdd(newTask);
@@ -98,6 +102,20 @@ function TaskModal({ modalId = "task_modal", onAdd, defaultStatus }: Props) {
             onChange={(e) => setDueDate(e.target.value)}
             className="input input-primary input-sm"
           />
+
+          <label className="input input-primary input-sm w-40">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-6">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+            </svg>
+
+            <input
+              type="number"
+              step="0.5"
+              className="grow"
+              value={estimatedTime}
+              onChange={(e) => setEstimatedTime(Number(e.target.value))}
+            />
+          </label>
         </div>
 
         <textarea

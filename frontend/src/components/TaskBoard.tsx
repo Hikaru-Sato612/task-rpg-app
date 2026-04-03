@@ -14,6 +14,7 @@ function TaskBoard() {
     status: string;
     description?: string;
     dueDate?: string;
+    estimatedTime?: number;
     isRetry?: boolean;
   };
 
@@ -21,6 +22,7 @@ function TaskBoard() {
   const [archives, setArchives] = useState<Task[]>([]);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [modalStatus, setModalStatus] = useState("Next");
+  
 
   const addTask = (task: Task) => {
     setTasks([...tasks, task]);
