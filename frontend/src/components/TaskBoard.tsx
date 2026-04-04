@@ -1,52 +1,92 @@
 import TaskModal from "./TaskModal";
 import TaskEditModal from "./TaskEditModal";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-function TaskBoard() {
+type Props = {
+  setExp: React.Dispatch<React.SetStateAction<number>>;
+};
+
+function TaskBoard({ setExp }: Props) {
   const openModal = () => {
     const modal = document.getElementById("task_modal") as HTMLDialogElement;
     modal.showModal();
   };
 
+  type Status = "Done" | "Doing" | "Next" | "Icebox";
+
   type Task = {
     id: number;
     title: string;
-    status: string;
-    description?: string;
-    dueDate?: string;
-    estimatedTime?: number;
+    status: Status;
+    description?: string | null;
+    dueDate?: string | null;
+    estimatedTime?: number | null;
     isRetry?: boolean;
   };
 
   const [tasks, setTasks] = useState<Task[]>([]);
   const [archives, setArchives] = useState<Task[]>([]);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
-  const [modalStatus, setModalStatus] = useState("Next");
-  
+  const [modalStatus, setModalStatus] = useState<Status>("Next");
+  const [expMessage, setExpMessage] = useState("");
 
-  const addTask = (task: Task) => {
-    setTasks([...tasks, task]);
+  const fetchTasks = () => {
+    fetch("http://localhost:3001/tasks")
+      .then((res) => res.json())
+      .then((data) => {
+        setTasks(data);
+      });
   };
 
+  useEffect(() => {
+    fetchTasks();
+  }, []);
+
   // 指定したタスクのstatusだけ変更する
-  const updateTaskStatus = (id: number, newStatus: string) => {
-    setTasks(
-      tasks.map((task) =>
-        task.id === id ? { ...task, status: newStatus } : task,
-      ),
-    );
+  const updateTaskStatus = async (task: Task, newStatus: Status) => {
+    await fetch(`http://localhost:3001/tasks/${task.id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        title: task.title,
+        status: newStatus,
+        description: task.description ?? null,
+        dueDate: task.dueDate || null,
+        estimatedTime: task.estimatedTime ?? null,
+      }),
+    });
+
+    fetchTasks();
   };
 
   // タスク更新
-  const updateTask = (updatedTask: Task) => {
-    setTasks(
-      tasks.map((task) => (task.id === updatedTask.id ? updatedTask : task)),
-    );
+  const updateTask = async (task: Task) => {
+    await fetch(`http://localhost:3001/tasks/${task.id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        title: task.title,
+        status: task.status,
+        description: task.description ?? null,
+        dueDate: task.dueDate ?? null,
+        estimatedTime: task.estimatedTime ?? null,
+      }),
+    });
+    console.log("API送信前", task);
+    fetchTasks();
   };
 
   // タスク削除
-  const deleteTask = (id: number) => {
-    setTasks(tasks.filter((task) => task.id !== id));
+  const deleteTask = async (id: number) => {
+    await fetch(`http://localhost:3001/tasks/${id}`, {
+      method: "DELETE",
+    });
+
+    fetchTasks();
   };
 
   // 編集モーダルを開く
@@ -58,44 +98,85 @@ function TaskBoard() {
   };
 
   // Done時の条件分岐
-  const retryTask = (id: number) => {
-    setTasks(
-      tasks.map((task) =>
-        task.id === id ? { ...task, status: "Doing", isRetry: true } : task,
-      ),
-    );
+  const retryTask = async (task: Task) => {
+    await fetch(`http://localhost:3001/tasks/${task.id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        title: task.title,
+        status: "Doing",
+        description: task.description ?? null,
+        dueDate: task.dueDate ?? null,
+        estimatedTime: task.estimatedTime ?? null,
+      }),
+    });
+
+    fetchTasks();
   };
 
   //アーカイブ
-  const handleArchive = (id: number) => {
+  const handleArchive = async (id: number) => {
     const target = tasks.find((task) => task.id === id);
-
     if (!target) return;
 
-    // EXP
-    alert("+100 EXP ❤️");
+    const exp = 100;
 
-    // アーカイブに追加
-    setArchives([...archives, target]);
+    setExp((prev) => prev + exp);
+    setExpMessage(`+${exp} EXP ❤️`);
 
-    // tasksから削除
-    setTasks(tasks.filter((task) => task.id !== id));
+    setTimeout(() => {
+      setExpMessage("");
+    }, 2000);
+
+    // DB削除に変更
+    await fetch(`http://localhost:3001/tasks/${id}`, {
+      method: "DELETE",
+    });
+
+    fetchTasks();
+  };
+
+  // 日付を「4/2」の形で表示
+  const formatDate = (dateStr?: string | null) => {
+    if (!dateStr) return "";
+
+    const [year, month, day] = dateStr.split("T")[0].split("-");
+
+    // ローカル日付として生成
+    const date = new Date(Number(year), Number(month) - 1, Number(day));
+
+    return `${date.getMonth() + 1}/${date.getDate()}`;
+  };
+
+  //各タスクの{getTotalTimeByStatus("Done")}hの集計
+  const getTotalTimeByStatus = (status: Status) => {
+    return tasks
+      .filter((task) => task.status === status)
+      .reduce((sum, task) => sum + (task.estimatedTime || 0), 0);
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen">
+    <div className="flex-1 overflow-y-auto py-9">
       <div className="max-w-[1080px] w-full mx-auto">
         <div className="cards flex flex-wrap gap-2 justify-center">
           {/* Done */}
-          <div className="card w-full max-w-[260px] bg-base-100 shadow-sm">
+          <div className="card w-full max-w-[260px] bg-base-100 shadow-sm relative">
+            {expMessage && (
+              <div className="absolute -top-6 left-1/2 -translate-x-1/2 z-50 text-green-500 font-bold animate-bounce">
+                {expMessage}
+              </div>
+            )}
             <div className="card-body p-0 h-[500px] flex flex-col">
-              <div className="bg-purple-500 rounded-md px-4 py-2 relative">
+              <div className="bg-purple-500 rounded-md px-4 py-2 relative overflow-visible">
                 <h2 className="flex justify-center text-3xl font-bold text-white relative">
                   <span className="badge badge-soft badge-primary absolute left-0 top-1/2 -translate-y-1/2">
-                    時間
+                    {getTotalTimeByStatus("Done")}h
                   </span>
                   Done
                 </h2>
+
                 <button
                   className="btn absolute right-0 top-1/2 -translate-y-1/2 bg-transparent border-none shadow-none text-white"
                   onClick={() => {
@@ -113,11 +194,21 @@ function TaskBoard() {
                   .map((task) => (
                     <div key={task.id} className="card bg-base-100 shadow mb-2">
                       <div
-                        className="card-body p-3 flex-row justify-between"
+                        className="card-body px-2 py-3 flex-row justify-between"
                         onClick={() => openEditModal(task)}
                       >
-                        <div className="">{task.title}</div>
-                        <div className="flex gap-1">
+                        <div className="flex justify-center items-center gap-2">
+                          <div className="flex flex-col justify-center items-center">
+                            <p className="badge badge-success badge-xs">
+                              {task.estimatedTime}
+                            </p>
+                            <p className="text-[10px] text-green-600">
+                              {formatDate(task.dueDate)}
+                            </p>
+                          </div>
+                          <div className="text-xs">{task.title}</div>
+                        </div>
+                        <div className="flex gap-1 justify-center items-center">
                           <button
                             className="btn btn-xs btn-circle btn-outline btn-secondary text-pink-500 border-pink-500"
                             onClick={(e) => {
@@ -144,7 +235,7 @@ function TaskBoard() {
                             className="btn btn-soft btn-xs text-gray-600 btn-circle"
                             onClick={(e) => {
                               e.stopPropagation();
-                              retryTask(task.id);
+                              retryTask(task);
                             }}
                           >
                             <svg
@@ -176,7 +267,7 @@ function TaskBoard() {
               <div className="bg-purple-500 rounded-md px-4 py-2 relative">
                 <h2 className="flex justify-center text-3xl font-bold text-white relative">
                   <span className="badge badge-soft badge-primary absolute left-0 top-1/2 -translate-y-1/2">
-                    時間
+                    {getTotalTimeByStatus("Doing")}h
                   </span>
                   Doing
                 </h2>
@@ -197,15 +288,25 @@ function TaskBoard() {
                   .map((task) => (
                     <div key={task.id} className="card bg-base-100 shadow mb-2">
                       <div
-                        className="card-body p-3 flex-row justify-between"
+                        className="card-body px-2 py-3 flex-row justify-between"
                         onClick={() => openEditModal(task)}
                       >
-                        <div className="">{task.title}</div>
+                        <div className="flex justify-center items-center gap-2">
+                          <div className="flex flex-col justify-center items-center">
+                            <p className="badge badge-success badge-xs">
+                              {task.estimatedTime}
+                            </p>
+                            <p className="text-[10px] text-green-600">
+                              {formatDate(task.dueDate)}
+                            </p>
+                          </div>
+                          <div className="text-xs">{task.title}</div>
+                        </div>
                         <button
                           className="btn btn-primary btn-xs"
                           onClick={(e) => {
                             e.stopPropagation();
-                            updateTaskStatus(task.id, "Done");
+                            updateTaskStatus(task, "Done");
                           }}
                         >
                           完了
@@ -223,7 +324,7 @@ function TaskBoard() {
               <div className="bg-purple-500 rounded-md px-4 py-2 relative">
                 <h2 className="flex justify-center text-3xl font-bold text-white relative">
                   <span className="badge badge-soft badge-primary absolute left-0 top-1/2 -translate-y-1/2">
-                    時間
+                    {getTotalTimeByStatus("Next")}h
                   </span>
                   Next
                 </h2>
@@ -244,15 +345,25 @@ function TaskBoard() {
                   .map((task) => (
                     <div key={task.id} className="card bg-base-100 shadow mb-2">
                       <div
-                        className="card-body p-3 flex-row justify-between"
+                        className="card-body px-2 py-3 flex-row justify-between"
                         onClick={() => openEditModal(task)}
                       >
-                        <div className="">{task.title}</div>
+                        <div className="flex justify-center items-center gap-2">
+                          <div className="flex flex-col justify-center items-center">
+                            <p className="badge badge-success badge-xs">
+                              {task.estimatedTime}
+                            </p>
+                            <p className="text-[10px] text-green-600">
+                              {formatDate(task.dueDate)}
+                            </p>
+                          </div>
+                          <div className="text-xs">{task.title}</div>
+                        </div>
                         <button
                           className="btn btn-soft btn-xs text-gray-600"
                           onClick={(e) => {
                             e.stopPropagation();
-                            updateTaskStatus(task.id, "Doing");
+                            updateTaskStatus(task, "Doing");
                           }}
                         >
                           始める
@@ -270,7 +381,7 @@ function TaskBoard() {
               <div className="bg-purple-500 rounded-md px-4 py-2 relative">
                 <h2 className="flex justify-center text-3xl font-bold text-white relative">
                   <span className="badge badge-soft badge-primary absolute left-0 top-1/2 -translate-y-1/2">
-                    時間
+                    {getTotalTimeByStatus("Icebox")}h
                   </span>
                   Icebox
                 </h2>
@@ -291,15 +402,25 @@ function TaskBoard() {
                   .map((task) => (
                     <div key={task.id} className="card bg-base-100 shadow mb-2">
                       <div
-                        className="card-body p-3 flex-row justify-between"
+                        className="card-body px-2 py-3 flex-row justify-between"
                         onClick={() => openEditModal(task)}
                       >
-                        <div className="">{task.title}</div>
+                        <div className="flex justify-center items-center gap-2">
+                          <div className="flex flex-col justify-center items-center">
+                            <p className="badge badge-success badge-xs">
+                              {task.estimatedTime}
+                            </p>
+                            <p className="text-[10px] text-green-600">
+                              {formatDate(task.dueDate)}
+                            </p>
+                          </div>
+                          <div className="text-xs">{task.title}</div>
+                        </div>
                         <button
                           className="btn btn-dash btn-primary btn-xs"
                           onClick={(e) => {
                             e.stopPropagation();
-                            updateTaskStatus(task.id, "Next");
+                            updateTaskStatus(task, "Next");
                           }}
                         >
                           受ける
@@ -313,11 +434,7 @@ function TaskBoard() {
         </div>
 
         {/* modal */}
-        <TaskModal
-          modalId="task_modal"
-          onAdd={addTask}
-          defaultStatus={modalStatus}
-        />
+        <TaskModal onAdd={fetchTasks} defaultStatus={modalStatus} />
 
         <TaskEditModal
           modalId="edit_modal"

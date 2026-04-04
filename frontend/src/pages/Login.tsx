@@ -1,4 +1,36 @@
+import { useNavigate } from "react-router-dom";
+import { useState } from "react";
+
 function Login() {
+  const navigate = useNavigate();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  const handleLogin = async () => {
+    const res = await fetch("http://localhost:3001/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email,
+        password,
+      }),
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+
+      // username保存
+      localStorage.setItem("username", data.username);
+      console.log(email, password);
+
+      navigate("/dashboard");
+    } else {
+      alert("ログイン失敗");
+    }
+  };
+
   return (
     <div className="flex items-center justify-center min-h-screen">
       <div className="card w-96 bg-white card-xl shadow-sm">
@@ -11,6 +43,7 @@ function Login() {
               name="my_tabs_3"
               className="tab bg-white font-bold text-black w-1/2"
               aria-label="ログイン"
+              defaultChecked
             />
             <div className="tab-content bg-white pt-4">
               <label className="input bg-white shadow mb-1">
@@ -30,7 +63,12 @@ function Login() {
                     />
                   </svg>
                 </span>
-                <input type="text" placeholder="mail@site.com" />
+                <input
+                  type="text"
+                  placeholder="mail@site.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
               </label>
               <label className="input bg-white shadow">
                 <span className="label">
@@ -49,11 +87,18 @@ function Login() {
                     />
                   </svg>
                 </span>
-                <input type="text" placeholder="Password" />
+                <input
+                  type="password"
+                  placeholder="Password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
               </label>
 
               <div className="justify-end card-actions mt-2.5">
-                <button className="btn btn-primary">ログイン</button>
+                <button className="btn btn-primary" onClick={handleLogin}>
+                  ログイン
+                </button>
               </div>
             </div>
 
@@ -62,7 +107,6 @@ function Login() {
               name="my_tabs_3"
               className="tab bg-white font-bold text-black w-1/2"
               aria-label="ユーザ登録"
-              defaultChecked
             />
             <div className="tab-content bg-white pt-4">
               <label className="input bg-white shadow mb-1">

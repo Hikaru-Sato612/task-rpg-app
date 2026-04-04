@@ -1,26 +1,19 @@
 import { useState, useEffect } from "react";
 
-type Task = {
-  id: number;
-  title: string;
-  status: string;
-  description?: string;
-  estimatedTime?: number;
-  dueDate?: string;
-};
+type Status = "Done" | "Doing" | "Next" | "Icebox";
 
 type Props = {
   modalId?: string;
-  onAdd: (task: Task) => void;
-  defaultStatus: string;
+  onAdd: () => void;
+  defaultStatus: Status;
 };
 
 function TaskModal({ modalId = "task_modal", onAdd, defaultStatus }: Props) {
   const [title, setTitle] = useState("");
-  const [status, setStatus] = useState(defaultStatus);
+  const [status, setStatus] = useState<Status>(defaultStatus);
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState("");
-  const [estimatedTime, setEstimatedTime] = useState(0);
+  const [estimatedTime, setEstimatedTime] = useState<number | "">("");
 
   useEffect(() => {
     setStatus(defaultStatus);
@@ -31,25 +24,32 @@ function TaskModal({ modalId = "task_modal", onAdd, defaultStatus }: Props) {
     setStatus(defaultStatus);
     setDescription("");
     setDueDate("");
-    setEstimatedTime(0);
+    setEstimatedTime("");
+
     const modal = document.getElementById(modalId) as HTMLDialogElement;
     modal.close();
   };
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (!title) return;
 
-    const newTask: Task = {
-      id: Date.now(),
+    const newTask = {
       title,
       status,
-      description,
-      dueDate,
-      estimatedTime,
+      description: description || null,
+      dueDate: dueDate || null,
+      estimatedTime: estimatedTime === "" ? null : estimatedTime,
     };
 
-    onAdd(newTask);
-    setTitle("");
+    await fetch("http://localhost:3001/tasks", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(newTask),
+    });
+
+    onAdd();
     closeModal();
   };
 
@@ -57,23 +57,8 @@ function TaskModal({ modalId = "task_modal", onAdd, defaultStatus }: Props) {
     <dialog id={modalId} className="modal">
       <div className="modal-box">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="font-bold text-lg">タスク編集</h3>
-          <button onClick={closeModal}>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={1.5}
-              stroke="currentColor"
-              className="size-5 font-bold"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M6 18 18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
+          <h3 className="font-bold text-lg">タスク追加</h3>
+          <button onClick={closeModal}>✕</button>
         </div>
 
         <input
@@ -87,13 +72,13 @@ function TaskModal({ modalId = "task_modal", onAdd, defaultStatus }: Props) {
         <div className="flex gap-2 mb-4">
           <select
             value={status}
-            onChange={(e) => setStatus(e.target.value)}
+            onChange={(e) => setStatus(e.target.value as Status)}
             className="select select-primary select-sm"
           >
-            <option>Done</option>
-            <option>Doing</option>
-            <option>Next</option>
-            <option>Icebox</option>
+            <option value="Done">Done</option>
+            <option value="Doing">Doing</option>
+            <option value="Next">Next</option>
+            <option value="Icebox">Icebox</option>
           </select>
 
           <input
@@ -103,19 +88,19 @@ function TaskModal({ modalId = "task_modal", onAdd, defaultStatus }: Props) {
             className="input input-primary input-sm"
           />
 
-          <label className="input input-primary input-sm w-40">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-6">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-            </svg>
-
-            <input
-              type="number"
-              step="0.5"
-              className="grow"
-              value={estimatedTime}
-              onChange={(e) => setEstimatedTime(Number(e.target.value))}
-            />
-          </label>
+          <input
+            type="number"
+            step="0.5"
+            min="0"
+            placeholder="時間"
+            className="input input-primary input-sm w-24"
+            value={estimatedTime}
+            onChange={(e) =>
+              setEstimatedTime(
+                e.target.value === "" ? "" : Number(e.target.value),
+              )
+            }
+          />
         </div>
 
         <textarea
@@ -123,7 +108,7 @@ function TaskModal({ modalId = "task_modal", onAdd, defaultStatus }: Props) {
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           className="textarea textarea-primary w-full"
-        ></textarea>
+        />
 
         <div className="modal-action">
           <button className="btn btn-primary" onClick={handleAdd}>
